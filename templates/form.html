@@ -4,7 +4,9 @@
 </div>
 <form method="POST" action="/">
   {{ form.csrf_token }}
-
+  {% for cat, mes in get_flashed_messages(True) %}
+    <div class="flash {{ cat }}">{{ mes }}</div>
+  {% endfor %}
   <div class="field">
     <label class="label">Name</label>
     <div class="control">

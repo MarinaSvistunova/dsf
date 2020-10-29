@@ -1,11 +1,20 @@
 import csv
 import os.path
+import sqlite3
 
-from flask import Flask, url_for
+from flask import Flask, url_for, g
 from flask import render_template
-from flask import request
+from flask import request, flash
+
+from FDataBase import FDataBase
 
 from wtforms import Form, BooleanField, StringField, PasswordField, validators
+
+
+# конфигурация
+DATABASE = '/tmp/iito.db'
+DEBUG = True
+SECRET_KEY = 'jvnp[oasmf#4jlavn%$!3]6;fdljvaoiubvcqwu'
 
 class RegistrationForm(Form):
     name = StringField('Name', [validators.Length(min=4, max=50)])
@@ -13,45 +22,56 @@ class RegistrationForm(Form):
     email = StringField('Email Address', [validators.Length(min=6, max=35)])
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'ioahcvjneklqivuhuibefcuiaevjcnelariochjvndolkaiorshnkrei'
+app.config.from_object(__name__)
+app.config.update(dict(DATABASE=os.path.join(app.root_path, 'iito.db')))
+
+def connect_db():
+    conn = sqlite3.connect(app.config['DATABASE'])
+    conn.row_factory = sqlite3.Row # представление не в виде кортежа, а в виде словаря
+    return conn
+
+def create_db():
+    db = connect_db()
+    with app.open_resource('iito.sql', mode='r') as file:
+        db.cursor().executescript(file.read())
+    db.commit()
+    db.close()
+
+def get_db():
+    if not hasattr(g, 'link_db'):
+        g.sq_db = connect_db()
+    return g.sq_db
+
+@app.teardown_appcontext
+def close_db(error):
+    if hasattr(g, 'link_db'):
+        g.iito.close()
 
 @app.route('/', methods=['GET', 'POST'])
 def main_route():
     form = RegistrationForm(request.form)
+    db = get_db()
+
+    dbase = FDataBase(db)
+
     if request.method == 'POST':
-        with open("registration.csv", "a", newline="") as file:
-            user = [request.form['name'], request.form['surename'], request.form['email']]
-            writer = csv.writer(file)
-            writer.writerow(user)
+        if len(request.form['name']) > 3 and len(request.form['surename']) > 3:
+            res = dbase.addReg(request.form['name'], request.form['surename'], request.form['email'])
+            # with open("registration.csv", "a", newline="") as file:
+            #     user = [request.form['name'], request.form['surename'], request.form['email']]
+            #     writer = csv.writer(file)
+            #     writer.writerow(user)
+            if not res:
+                flash('Fall', category="error")
+            else:
+                flash('OK', category="success")
+        else:
+            flash('Fall', category="error")
+
     return render_template('layout.html', form=form)
 
-# @app.route('/', methods=['GET', 'POST'])
-# def register():
-#     items = []
-#     form = RegistrationForm(request.form)
-#
-#     path = os.getcwd()
-#     if os.path.exists(path + '/registration.csv'):
-#
-#         with open("registration.csv", "r") as file:
-#             reader = csv.reader(file)
-#
-#             for row in reader:
-#                 row = row[0].split(';')
-#                 items += [[row[0], row[1], row[2]]]
-#
-#     if request.method == 'POST' and form.validate():
-#         name, surname, email = form.name.data, form.surname.data, form.email.data
-#
-#         with open("registration.csv", "a", newline="") as file:
-#
-#             user = [name, surname, email]
-#             writer = csv.writer(file)
-#             writer.writerow(user)
-#         items += [[]]
-#         items[-1] = [name, surname, email]
-#
-#     return render_template('register.html', form=form, items=items)
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
