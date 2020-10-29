@@ -1,11 +1,15 @@
 # flask2-pr-7
 
 ```
-pip install -r requirements.txt
+git clone https://github.com/MarinaSvistunova/flask2-pr-7.git
 ```
 
 ```
-source bin/activate
+cd flask2-pr-7
+```
+
+```
+pip install -r requirements.txt
 ```
 
 ```
