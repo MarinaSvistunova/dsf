@@ -1,5 +1,6 @@
 bulma==1.0.1
 click==7.1.2
+flash==1.0.3
 Flask==1.1.2
 itsdangerous==1.1.0
 Jinja2==2.11.2
